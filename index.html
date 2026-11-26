@@ -296,9 +296,9 @@ function drawUI(){const C=CONFIG;
   else if(state==='celebrate'){const fo=1-smooth(ts/.9);
     if(fo>.01){letters(C.WISH_MADE,66,400,190,99,fo,false,8);txt(C.SUB_WISH,34,400,265,fo)}
     const nm=C.NAME.toUpperCase();ctx.font=`bold 100px ${FONT}`;const nsz=Math.min(100,100*700/Math.max(1,ctx.measureText(nm).width));
-    addG(gAura,400,1010,.4*smooth((ts-.3)/1.2),.9);
-    letters(C.HB,58,400,925,ts-.5,1,true,5);letters(nm,nsz,400,1015,ts-.9,1,true,7);
-    txt(C.BLESSING,27,400,1105,smooth((ts-2.8)/1.2),{maxW:640});
+    addG(gAura,400,205,.4*smooth((ts-.3)/1.2),.9);
+    letters(C.HB,58,400,150,ts-1,1,true,5);letters(nm,nsz,400,255,ts-1.4,1,true,7);
+    txt(C.BLESSING,27,400,980,smooth((ts-3.2)/1.2),{maxW:640});
     if(ts>9)txt(touch?C.REPLAY_TOUCH:C.REPLAY_KEY,22,400,1170,smooth((ts-9)/1)*(.5+.5*Math.sin(T*2.2)),{col:'#ffe2a0'})}}
 
 // ---------------------------------------------------------------- entrada / loop

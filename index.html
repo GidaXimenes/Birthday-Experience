@@ -22,7 +22,7 @@ const CONFIG = {
   T1: "Alguém muito especial está celebrando hoje...",
   T2A: "Antes de celebrarmos...",
   T2B: "Feche os olhos e faça um pedido.",
-  T3: "Agora sopre as velas.",
+  T3: "Feito o pedido, agora sopre as velas.",
   INSTR_KEY: "Aperte e segure ESPAÇO para soprar as velas.",
   INSTR_TOUCH: "Toque e segure a tela para soprar as velas.",
   KEEP: "Continue segurando...",
@@ -33,6 +33,16 @@ const CONFIG = {
   SUB_WISH: "Agora é com Ele.",
   HB: "FELIZ ANIVERSÁRIO,",
   BLESSING: "Que Deus te abençoe e que Ele esteja à frente de todos os seus pedidos.",
+  CARTA: [                                           // cada item aparece um por vez ({NOME} vira o nome acima)
+    "{NOME}, que este novo ciclo seja leve, cheio de paz e de motivos para sorrir.",
+    "Que Deus cuide de cada passo seu e coloque no seu caminho pessoas que te façam bem.",
+    "Tenha a plena certeza de que Ele vê cada parte do seu esforço no trabalho para a obra Dele.",
+    "Continue sendo essa serva dedicada e brincalhona, que ama uma resenha e nunca perde a chance de bater perna.",
+    "Sua vida é única de um jeito sem tamanho. Que você siga firme nessa caminhada com Cristo, sempre com muita alegria."
+  ],
+  CARTA_HINT_KEY: "Aperte Enter para ler uma mensagem especial",
+  CARTA_HINT_TOUCH: "Toque para ler uma mensagem especial",
+  CARTA_FIM: "Feliz aniversário!!",
   REPLAY_KEY: "Aperte R para recomeçar",
   REPLAY_TOUCH: "Toque para recomeçar"
 };
@@ -159,8 +169,9 @@ function setState(n){state=n;ts=0;
   else if(n==='wish'){cakeP=1;prep();ambT=.2;ambR=1.4}
   else if(n==='blow'){cakeP=1;prep();phase='ready';charge=0;msg='';msgT=99;ambT=.2;ambR=2}
   else if(n==='reveal'){revealed=false;ambT=.05;ambR=3}
-  else if(n==='celebrate'){ambT=.92;ambR=1.2;goldT=.42;goldR=.8;spawnConf(220,-760,-20)}}
-function onEnter(){if(state==='title'){if(launch<0)launch=0}else if(state==='intro')setState('wish');else if(state==='wish')setState('blow');else if(state==='reveal'&&ts>2)setState('celebrate')}
+  else if(n==='celebrate'){ambT=.92;ambR=1.2;goldT=.42;goldR=.8;spawnConf(220,-760,-20)}
+  else if(n==='carta'){ambT=.5;ambR=1.5;goldT=.12;goldR=.8}}
+function onEnter(){if(state==='title'){if(launch<0)launch=0}else if(state==='intro')setState('wish');else if(state==='wish')setState('blow');else if(state==='reveal'&&ts>2)setState('celebrate');else if(state==='celebrate'&&ts>6)setState('carta')}
 
 // ---------------------------------------------------------------- partículas
 function addP(x,y,vx,vy,life,drag,grav,r,col){sp.push({x,y,vx,vy,age:0,life,drag,grav,r,col})}
@@ -200,7 +211,7 @@ function update(dt){
   if(state!=='blow')wind=appr(wind,0,5,dt);
   amb=appr(amb,ambT,ambR,dt);gold=appr(gold,goldT,goldR,dt);flash=Math.max(0,flash-dt*1.8);
   aura=appr(aura,state==='blow'?(phase==='holding'?.62*charge:phase==='release'?.7*wind:0):0,8,dt);
-  cakeY=CAKE_Y+(1-eo(cakeP))*720;
+  cakeY=CAKE_Y+(1-eo(cakeP))*720+(state==='carta'?eo(ts/2.5)*900:0);
   candles.forEach(c=>{c.sx=CAKE_X0+c.lx;c.sy=cakeY+c.ly;c.fy=c.sy-62.5;c.fl=.86+.14*flick(c,T*1.2);
     if(c.state==='idle'){if(c.reveal>=1){c.wait+=dt;if(c.wait>.25)c.state='burning'}}
     else if(c.state==='burning')c.f=Math.min(1,c.f+dt*1.7);
@@ -281,6 +292,21 @@ function drawSign(a){const l=launch,pu=.85+.15*Math.sin(T*2.4);
     const str=touch?CONFIG.START_TOUCH:CONFIG.START_KEY,L=[];let q='';for(const w of str.split(' ')){const t2=q?q+' '+w:w;if(ctx.measureText(t2).width>310&&q){L.push(q);q=w}else q=t2}L.push(q);
     L.forEach((z,i)=>ctx.fillText(z,x,y-6+(i-(L.length-1)/2)*58));ctx.restore()}}
 
+let carta=null;
+function layoutCarta(){const C=CONFIG,size=30,maxW=620;ctx.save();ctx.font=`italic ${size}px ${FONT}`;
+  const items=C.CARTA.map(s=>{s=s.replace('{NOME}',C.NAME);const L=[];let l='';for(const w of s.split(' ')){const t2=l?l+' '+w:w;if(ctx.measureText(t2).width>maxW&&l){L.push(l);l=w}else l=t2}L.push(l);return{L,words:s.split(' ').length}});ctx.restore();
+  const lh=size*1.4,gap=30,tot=items.reduce((a,b)=>a+b.L.length*lh,0)+gap*(items.length-1);let y=520-tot/2,t=2;
+  items.forEach(it=>{it.y=y;it.t=t;y+=it.L.length*lh+gap;t+=.6+.17*it.words});
+  return{items,lh,size,tEnd:t,bot:y-gap}}
+function drawCarta(){const C=CONFIG;carta=carta||layoutCarta();
+  const fo=1-smooth(ts/1);
+  if(fo>.01){const nm=C.NAME.toUpperCase();ctx.font=`bold 100px ${FONT}`;const nsz=Math.min(100,100*700/Math.max(1,ctx.measureText(nm).width));
+    letters(C.HB,58,400,150,99,fo,false,5);letters(nm,nsz,400,255,99,fo,false,7);txt(C.BLESSING,27,400,980,fo,{maxW:640})}
+  carta.items.forEach(it=>{const a=smooth((ts-it.t)/1.2);if(a<.01)return;ctx.save();ctx.globalAlpha=a;ctx.font=`italic ${carta.size}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#f4ead6';ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=10;it.L.forEach((ln,i)=>ctx.fillText(ln,400,it.y+(1-a)*10+(i+.5)*carta.lh));ctx.restore()});
+  const tf=carta.tEnd,fy=carta.bot+110;addG(gAura,400,fy,.3*smooth((ts-tf)/1),.9);letters(C.CARTA_FIM,66,400,fy,ts-tf,1,true,6);
+  if(ts>tf+5)txt(touch?C.REPLAY_TOUCH:C.REPLAY_KEY,22,400,1160,smooth((ts-tf-5)/1)*(.5+.5*Math.sin(T*2.2)),{col:'#ffe2a0'})}
+
 function drawUI(){const C=CONFIG;
   if(state==='title')drawSign(smooth(T/1.2));
   else if(state==='intro')txt(C.T1,34,400,170,smooth((ts-1.8)/1.2)*(1-smooth((ts-7.6)/.9)));
@@ -302,7 +328,9 @@ function drawUI(){const C=CONFIG;
     addG(gAura,400,205,.4*smooth((ts-.3)/1.2),.9);
     letters(C.HB,58,400,150,ts-1,1,true,5);letters(nm,nsz,400,255,ts-1.4,1,true,7);
     txt(C.BLESSING,27,400,980,smooth((ts-3.2)/1.2),{maxW:640});
-    if(ts>9)txt(touch?C.REPLAY_TOUCH:C.REPLAY_KEY,22,400,1170,smooth((ts-9)/1)*(.5+.5*Math.sin(T*2.2)),{col:'#ffe2a0'})}}
+    if(ts>6)txt(touch?C.CARTA_HINT_TOUCH:C.CARTA_HINT_KEY,24,400,1100,smooth((ts-6)/1)*(.55+.45*Math.sin(T*2.4)),{col:'#ffe2a0'});
+  }
+  else if(state==='carta')drawCarta()}
 
 // ---------------------------------------------------------------- áudio (música + efeitos gerados no código)
 let AC,master,noiseBuf,windG,windF,muted=false,mus={},lastT={inicio:-1,final:-1};
@@ -326,7 +354,7 @@ function setMus(k,v){const m=mus[k];if(!m||lastT[k]===v)return;lastT[k]=v;
 function stopMusic(){if(!AC)return;for(const k in mus){const m=mus[k];m.a.pause();m.a.currentTime=0;m.g.gain.cancelScheduledValues(AC.currentTime);m.g.gain.value=0;lastT[k]=-1}}
 function audioTick(){if(!AC)return;let i=0,f=0;
   if(state==='title')i=launch>=0?.5:0;else if(state==='intro'||state==='wish')i=.5;else if(state==='blow')i=.18;
-  else if(state==='reveal')f=revealed?.55:0;else if(state==='celebrate')f=.6;
+  else if(state==='reveal')f=revealed?.55:0;else if(state==='celebrate'||state==='carta')f=state==='carta'?.4:.6;
   setMus('inicio',i);setMus('final',f);
   windG.gain.setTargetAtTime(wind*.35,AC.currentTime,.05);windF.frequency.setTargetAtTime(400+wind*1000,AC.currentTime,.08)}
 function boom(v){if(!AC)return;const t=AC.currentTime,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
@@ -345,7 +373,7 @@ addEventListener('keydown',e=>{initAudio();if(e.code==='Space'){space=true;e.pre
   else if(e.key==='m'||e.key==='M')toggleMute();
   else if(e.key==='f'||e.key==='F')document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()});
 addEventListener('keyup',e=>{if(e.code==='Space')space=false});
-addEventListener('pointerdown',()=>{initAudio();space=true;if(state==='title')onEnter();else if(state==='celebrate'&&ts>9)reset('title')});
+addEventListener('pointerdown',()=>{initAudio();space=true;if(state==='title'||state==='celebrate')onEnter();else if(state==='carta'&&carta&&ts>carta.tEnd+5)reset('title')});
 ['pointerup','pointercancel','blur'].forEach(n=>addEventListener(n,()=>space=false));
 function fit(){const s=Math.min(innerWidth/W,innerHeight/H),q=Math.min(2,Math.max(1,s*(devicePixelRatio||1)));
   cv.style.width=W*s+'px';cv.style.height=H*s+'px';cv.width=Math.round(W*q);cv.height=Math.round(H*q)}
